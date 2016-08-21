@@ -133,8 +133,12 @@ find_file_check(mrb_state *mrb, mrb_value path, mrb_value fname, mrb_value ext)
   FILE *fp;
   char fpath[MAXPATHLEN];
   mrb_value filepath = mrb_str_dup(mrb, path);
-  mrb_str_cat2(mrb, filepath, "/");
-  mrb_str_buf_append(mrb, filepath, fname);
+  if (strchr(RSTRING_PTR(fname), '/') == RSTRING_PTR(fname)) {
+    mrb_funcall(mrb, filepath, "replace", 1, fname);
+  } else {
+    mrb_str_cat2(mrb, filepath, "/");
+    mrb_str_buf_append(mrb, filepath, fname);
+  }
   if (!mrb_nil_p(ext)) {
     mrb_str_buf_append(mrb, filepath, ext);
   }
@@ -220,6 +224,7 @@ find_file(mrb_state *mrb, mrb_value filename)
     mrb_ary_push(mrb, load_path, mrb_str_new_cstr(mrb, "."));
   }
 
+not_found:
   for (i = 0; i < RARRAY_LEN(load_path); i++) {
     for (j = 0; j < RARRAY_LEN(exts); j++) {
       filepath = find_file_check(
@@ -451,12 +456,13 @@ load_file(mrb_state *mrb, mrb_value filepath)
     load_rb_file(mrb, filepath);
   } else if (strcmp(ext, ".mrb") == 0) {
     load_mrb_file(mrb, filepath);
-  } else if (strcmp(ext, ".so") == 0 || 
-             strcmp(ext, ".dll") == 0 || 
+  } else if (strcmp(ext, ".so") == 0 ||
+             strcmp(ext, ".dll") == 0 ||
              strcmp(ext, ".dylib") == 0) {
     load_so_file(mrb, filepath);
   } else {
-    mrb_raisef(mrb, E_LOAD_ERROR, "Filepath '%S' has invalid extension.", filepath);
+    load_rb_file(mrb, filepath);
+    // mrb_raisef(mrb, E_LOAD_ERROR, "Filepath '%S' has invalid extension.", filepath);
     return;
   }
 }
