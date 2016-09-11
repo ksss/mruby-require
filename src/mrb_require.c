@@ -238,7 +238,6 @@ not_found:
     }
   }
 
-not_found:
   mrb_load_fail(mrb, filename, "cannot load such file");
   return mrb_nil_value();
 }
